@@ -1,0 +1,14 @@
+[
+ {"question":"What is my current bench press working weight?","expected_substring":"60","expected_source":"gym-log.md"},
+ {"question":"When did I hit my deadlift PR?","expected_substring":"2026-09-28","expected_source":"gym-log.md"},
+ {"question":"How much does the Lisbon Airbnb cost per night?","expected_substring":"85","expected_source":"lisbon-trip.md"},
+ {"question":"When is the Lisbon trip?","expected_substring":"December","expected_source":"lisbon-trip.md"},
+ {"question":"How much is monthly rent in the budget?","expected_substring":"18000","expected_source":"finance/budget-2026.md"},
+ {"question":"What is the monthly learning envelope?","expected_substring":"2500","expected_source":"finance/budget-2026.md"},
+ {"question":"What interval does Leitner Box 4 use?","expected_substring":"21","expected_source":"learning/spaced-repetition.md"},
+ {"question":"How much ghee goes in dal tadka?","expected_substring":"2 tbsp","expected_source":"dal-tadka.md"},
+ {"question":"What day is the team demo?","expected_substring":"Monday","expected_source":"meetings/standup-notes.md"},
+ {"question":"What did the electrician quote for the 20A line?","expected_substring":"2500","expected_source":"home-gym.md"},
+ {"question":"What is my daily protein target?","expected_substring":"130","expected_source":"gym-log.md"},
+ {"question":"What is my car insurance renewal date?","expected_substring":"NOT_IN_NOTES","expected_source":"","refusal":true}
+]
