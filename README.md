@@ -25,6 +25,15 @@ PYTHONPATH=src python -m notesqa links gym-log
 State lives in `~/.notesqa` (set `NOTESQA_HOME` to move it). Point `--data`
 at your own vault — a sample one ships in `data/vault/`.
 
+**Live vault sync**: `PYTHONPATH=src python -m notesqa watch --data /path/to/vault`
+polls note hashes every 5s and re-indexes on any add/change/delete — no daemon
+deps, and sync runs in a fresh subprocess so long-running watching never holds
+a Chroma client open.
+
+**Embedding swap**: set `NOTESQA_EMBED_MODEL=bge-m3` (or any Ollama embed model)
+before `ingest`/`ask` — each model gets its own collection, so you can A/B
+backends side by side. Default stays `nomic-embed-text` (smaller, fast).
+
 Streamlit UI (code-reviewed, not browser-tested): `streamlit run app.py`.
 
 ## Demo
@@ -78,16 +87,32 @@ Refusal accuracy       1/1 (100%)
 ```
 
 `PYTHONPATH=src python eval/run_eval.py` (needs Ollama + ingested vault).
-Plus 12 pytest covering frontmatter, breadcrumbs, wikilinks/backlinks, RRF
-math, tag filters, incremental behavior, and the refusal contract — all
-network mocked.
+
+**vs ripgrep baseline** — `eval/bench_recall.py` compares Recall@5 on the same
+golden set (measured on the laptop, RTX 3050):
+
+```text
+Retriever                    Recall@5   (11 golden questions)
+Hybrid (dense+BM25+RRF)     11/11 (100%)
+ripgrep baseline (tokens)   11/11 (100%)
+```
+
+Honest read: on a small corpus full of exact-figure questions, token grep is
+already strong — the hybrid's payoff shows up on bigger vaults and paraphrased
+queries where exact tokens fail (that is what the golden set cannot stress).
+`bge-m3` (`NOTESQA_EMBED_MODEL=bge-m3`) was A/B'd against `nomic-embed-text`
+on this set: identical 11/11/1 — kept nomic as default for footprint.
+
+Plus 14 pytest covering frontmatter, breadcrumbs, wikilinks/backlinks, RRF
+math, tag filters, watcher diffing, related-dedupe, incremental behavior, and
+the refusal contract — all network mocked.
 
 ## Limitations & upgrade path
 
-Best-effort heading parsing inside code fences; backlinks are single-hop.
-Logged upgrades: file-watcher daemon for live sync, Qdrant hybrid (BM25/
-miniCOIL) payload filtering, bge-m3 embeddings, Ragas scoring, and a
-ripgrep-recall benchmark harness.
+Best-effort heading parsing inside code fences; backlinks are single-hop; the
+watcher polls (2–5s lag) rather than using inotify events. Logged upgrades:
+Qdrant hybrid (BM25/miniCOIL) payload filtering, Ragas scoring, paraphrase-
+heavy golden cases that separate hybrid from grep.
 
 ## License
 

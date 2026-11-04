@@ -27,18 +27,25 @@ def answer(question, chunks, notes=None):
     citations = list(dict.fromkeys(
         c for c in re.findall(r"\[([^\]\s]+\.md)\]", value)))
     related = []
+    seen_stems = set()
+
+    def _push(cand):
+        stem = cand.rsplit("/", 1)[-1].rsplit(".", 1)[0].lower()
+        if stem not in seen_stems:
+            seen_stems.add(stem)
+            related.append(cand)
+
     if notes:
         for cite in citations:
-            stem = cite.rsplit(".", 1)[0].lower()
-            for src in {c["metadata"]["source"].rsplit(".", 1)[0].lower() for c in chunks}:
+            stem = cite.rsplit("/", 1)[-1].rsplit(".", 1)[0].lower()
+            for src in {c["metadata"]["source"].rsplit("/", 1)[-1].rsplit(".", 1)[0].lower() for c in chunks}:
                 if src == stem:
-                    body = "\n".join(c["text"] for c in chunks if c["metadata"]["source"].rsplit(".", 1)[0].lower() == stem)
+                    body = "\n".join(c["text"] for c in chunks
+                                     if c["metadata"]["source"].rsplit("/", 1)[-1].rsplit(".", 1)[0].lower() == stem)
                     for link in wikilinks(body):
                         cand = link if link.endswith(".md") else link + ".md"
-                        if cand.lower() != cite.lower() and cand not in related:
-                            related.append(cand)
-            if notes:  # incoming backlinks
-                for nb in backlinks(cite, notes):
-                    if nb not in related:
-                        related.append(nb)
+                        if cand.rsplit("/", 1)[-1].rsplit(".", 1)[0].lower() != stem:
+                            _push(cand)
+            for nb in backlinks(cite, notes):
+                _push(nb)
     return {"answer": value, "citations": citations, "related": related[:5]}

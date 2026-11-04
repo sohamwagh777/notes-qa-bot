@@ -74,3 +74,28 @@ def test_citation_extraction_real_filenames():
         post.return_value.json.return_value = {"message": {"content": "Bench is 60kg [gym-log.md]."}}
         r = answer("bench?", chunks)
         assert r["citations"] == ["gym-log.md"] and "[filename" not in r["answer"]
+
+
+def test_related_dedupes_subfolder_stems():
+    chunks = [{"text": "rent 18000, plan see [[budget-2026]]", "metadata": {"source": "finance/budget-2026.md"}}]
+    notes = {"finance/budget-2026.md": "rent 18000 [[budget-2026]]", "gym-log.md": "cites [[finance/budget-2026]]"}
+    with patch("notesqa.generate.requests.post") as post:
+        post.return_value.raise_for_status.return_value = None
+        post.return_value.json.return_value = {"message": {"content": "Rent is 18000 [finance/budget-2026.md]."}}
+        r = answer("rent?", chunks, notes=notes)
+        stems = [x.rsplit("/", 1)[-1].rsplit(".", 1)[0] for x in r["related"]]
+        assert len(stems) == len(set(s.lower() for s in stems))
+
+
+def test_watcher_diff(tmp_path):
+    from notesqa.watcher import vault_hashes, diff_vault
+    (tmp_path / "a.md").write_text("one")
+    h1 = vault_hashes(tmp_path)
+    (tmp_path / "b.md").write_text("two")
+    (tmp_path / "a.md").write_text("one edited")
+    h2 = vault_hashes(tmp_path)
+    added, changed, removed = diff_vault(h1, h2)
+    assert added == ("b.md",) and changed == ("a.md",) and removed == ()
+    (tmp_path / "b.md").unlink()
+    added, changed, removed = diff_vault(h2, vault_hashes(tmp_path))
+    assert removed == ("b.md",)

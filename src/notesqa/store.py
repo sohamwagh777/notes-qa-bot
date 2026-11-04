@@ -6,8 +6,8 @@ import requests
 import chromadb
 
 OLLAMA = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
-EMBED_MODEL = "nomic-embed-text"
-COLLECTION = "notes"
+EMBED_MODEL = os.getenv("NOTESQA_EMBED_MODEL", "nomic-embed-text")
+COLLECTION = f"notes-{EMBED_MODEL.split(':')[0]}"
 
 
 def state_dir():
