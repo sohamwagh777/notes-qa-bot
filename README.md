@@ -83,20 +83,27 @@ paraphrases sharing few tokens with the notes, and out-of-scope refusals.
 ```text
 Metric                  Score
 Retrieval hit-rate      18/18 (100%)
-Answer substring       15/18 (83%)
+Answer substring       18/18 (100%)
 Refusal accuracy       2/2 (100%)
-Overall                17/20
+Overall                20/20
 ```
 
 `PYTHONPATH=src python eval/run_eval.py [--verbose]` (needs Ollama + ingested
-vault).
+vault). Numbers above are three consecutive identical runs (temperature 0).
 
-Known limit: the 3 misses are the local 4B generator refusing on heavy
-paraphrases ("barbell press" for bench press, "faulty" for broken) even though
-retrieval surfaced the right note — a model-size floor on a 4GB VRAM laptop,
-not a retrieval failure. Levers: query rewriting, or a bigger Ollama model.
-Prompt-level workarounds were tried and reverted: they destabilised the exact
-cases (documented in the commit history).
+How the hard cases are handled (all deterministic, no prompt hacks):
+- **Rare-token priming** — chunks are ordered for the generator by weighted
+  word-boundary matches (2 pts in heading/path/title, 1 in text; ties keep
+  hybrid order), so the chunk whose *section heading* answers a paraphrased
+  question reaches the 4B model first. Word boundaries matter: substring
+  matching once ranked "parents" against a "rent" query.
+- **Refusal retry with a vocabulary gate** — if the first call refuses but a
+  retrieved chunk shares rare query tokens (df 1–3), one targeted extract-the-
+  sentence call fires. Zero shared vocabulary ⇒ the refusal stands (both OOS
+  refusals pass without ever spending the retry).
+- HNSW caveat: Chroma's graph recall degrades after many deletes; if queries
+  start missing known-good chunks, drop and re-ingest the collection
+  (observed live during development).
 
 **vs ripgrep baseline** — `eval/bench_recall.py` compares Recall@5 on the
 exact-fact subset (measured on the laptop, RTX 3050):
@@ -113,9 +120,11 @@ queries where exact tokens fail.
 `bge-m3` (`NOTESQA_EMBED_MODEL=bge-m3`) was A/B'd against `nomic-embed-text`:
 identical scores — kept nomic as default for footprint.
 
-Plus 14 pytest covering frontmatter, breadcrumbs, wikilinks/backlinks, RRF
-math, tag matching, watcher diffing, related-dedupe, incremental behavior, and
-the refusal contract — all network mocked.
+Plus 18 pytest covering frontmatter, breadcrumbs, wikilinks/backlinks, RRF
+math, tag matching, chunk priming order, refusal-retry gating (recovery,
+no-retry-on-true-refusal, citation enforcement), watcher diffing,
+related-dedupe, incremental behavior, and the refusal contract — all network
+mocked.
 
 ## Limitations & upgrade path
 

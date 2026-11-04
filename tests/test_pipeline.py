@@ -69,6 +69,37 @@ def test_not_in_notes_passthrough():
         assert answer("q", chunks)["answer"] == NOT_FOUND
 
 
+def test_refusal_retry_recovers_via_extraction():
+    chunks = [{"text": "Bench 60kg 4x8 on Mondays at the gym", "metadata": {"source": "gym-log.md"}}]
+    with patch("notesqa.generate.requests.post") as post:
+        post.return_value.raise_for_status.return_value = None
+        post.return_value.json.side_effect = [
+            {"message": {"content": NOT_FOUND}},                      # first call refuses
+            {"message": {"content": "Bench 60kg 4x8 [gym-log.md]"}}]  # extraction retry
+        r = answer("How heavy is the barbell press at the bench?", chunks)
+        assert "60kg" in r["answer"] and post.call_count == 2
+
+
+def test_refusal_not_retried_without_shared_vocabulary():
+    chunks = [{"text": "Bench 60kg 4x8 on Mondays", "metadata": {"source": "gym-log.md"}}]
+    with patch("notesqa.generate.requests.post") as post:
+        post.return_value.raise_for_status.return_value = None
+        post.return_value.json.return_value = {"message": {"content": NOT_FOUND}}
+        r = answer("When does my passport expire?", chunks)  # zero shared rare tokens
+        assert r["answer"] == NOT_FOUND and post.call_count == 1
+
+
+def test_extraction_retry_gets_citation_appended():
+    chunks = [{"text": "Decline position broken on the bench", "metadata": {"source": "home-gym.md"}}]
+    with patch("notesqa.generate.requests.post") as post:
+        post.return_value.raise_for_status.return_value = None
+        post.return_value.json.side_effect = [
+            {"message": {"content": NOT_FOUND}},
+            {"message": {"content": "Decline position broken"}}]
+        r = answer("Which bench is faulty at the home gym?", chunks)
+        assert r["citations"] == ["home-gym.md"]
+
+
 def test_citation_extraction_real_filenames():
     chunks = [{"text": "bench 60kg", "metadata": {"source": "gym-log.md"}}]
     with patch("notesqa.generate.requests.post") as post:
@@ -87,6 +118,17 @@ def test_related_dedupes_subfolder_stems():
         r = answer("rent?", chunks, notes=notes)
         stems = [x.rsplit("/", 1)[-1].rsplit(".", 1)[0] for x in r["related"]]
         assert len(stems) == len(set(s.lower() for s in stems))
+
+
+def test_priming_puts_rare_token_chunk_first():
+    chunks = [{"text": "Toor dal 250g, staple for the Sunday prep", "metadata": {"source": "dal-tadka.md", "heading": "Tadka", "path": "Dal Tadka > Tadka"}},
+              {"text": "Chicken curry 1.2kg + rajma chawal", "metadata": {"source": "meal-plan.md", "heading": "Meal Plan > Sunday prep", "path": "Meal Plan > Sunday prep"}}]
+    with patch("notesqa.generate.requests.post") as post:
+        post.return_value.raise_for_status.return_value = None
+        post.return_value.json.return_value = {"message": {"content": "Chicken curry [meal-plan.md]"}}
+        answer("What is on the Sunday prep table?", chunks)
+        sent_context = post.call_args.kwargs["json"]["messages"][1]["content"]
+        assert sent_context.index("meal-plan.md") < sent_context.index("dal-tadka.md")
 
 
 def test_watcher_diff(tmp_path):
