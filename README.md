@@ -77,19 +77,29 @@ backlinks <- books-to-read.md, lisbon-trip.md, meal-plan.md, project-ideas.md
 
 ## Evaluation
 
-12 hand-checked golden questions over the sample vault:
+20 scenarios over the sample vault: exact facts, dates, tag-filtered queries,
+paraphrases sharing few tokens with the notes, and out-of-scope refusals.
 
 ```text
 Metric                  Score
-Retrieval hit-rate      11/11 (100%)
-Answer substring       11/11 (100%)
-Refusal accuracy       1/1 (100%)
+Retrieval hit-rate      18/18 (100%)
+Answer substring       15/18 (83%)
+Refusal accuracy       2/2 (100%)
+Overall                17/20
 ```
 
-`PYTHONPATH=src python eval/run_eval.py` (needs Ollama + ingested vault).
+`PYTHONPATH=src python eval/run_eval.py [--verbose]` (needs Ollama + ingested
+vault).
 
-**vs ripgrep baseline** — `eval/bench_recall.py` compares Recall@5 on the same
-golden set (measured on the laptop, RTX 3050):
+Known limit: the 3 misses are the local 4B generator refusing on heavy
+paraphrases ("barbell press" for bench press, "faulty" for broken) even though
+retrieval surfaced the right note — a model-size floor on a 4GB VRAM laptop,
+not a retrieval failure. Levers: query rewriting, or a bigger Ollama model.
+Prompt-level workarounds were tried and reverted: they destabilised the exact
+cases (documented in the commit history).
+
+**vs ripgrep baseline** — `eval/bench_recall.py` compares Recall@5 on the
+exact-fact subset (measured on the laptop, RTX 3050):
 
 ```text
 Retriever                    Recall@5   (11 golden questions)
@@ -99,12 +109,12 @@ ripgrep baseline (tokens)   11/11 (100%)
 
 Honest read: on a small corpus full of exact-figure questions, token grep is
 already strong — the hybrid's payoff shows up on bigger vaults and paraphrased
-queries where exact tokens fail (that is what the golden set cannot stress).
-`bge-m3` (`NOTESQA_EMBED_MODEL=bge-m3`) was A/B'd against `nomic-embed-text`
-on this set: identical 11/11/1 — kept nomic as default for footprint.
+queries where exact tokens fail.
+`bge-m3` (`NOTESQA_EMBED_MODEL=bge-m3`) was A/B'd against `nomic-embed-text`:
+identical scores — kept nomic as default for footprint.
 
 Plus 14 pytest covering frontmatter, breadcrumbs, wikilinks/backlinks, RRF
-math, tag filters, watcher diffing, related-dedupe, incremental behavior, and
+math, tag matching, watcher diffing, related-dedupe, incremental behavior, and
 the refusal contract — all network mocked.
 
 ## Limitations & upgrade path

@@ -48,9 +48,11 @@ def test_rrf_math():
     assert rrf([["a", "b"], ["a", "c"]], k=60) == ["a", "b", "c"]
 
 
-def test_tag_filter_builder():
-    assert where_for() is None
-    assert where_for(tag="fitness") == {"tags": {"$contains": "fitness"}}
+def test_tag_filter_match():
+    from notesqa.retrieve import _tag_match
+    row = {"metadata": {"tags": "fitness,cooking"}}
+    assert _tag_match(row, "cooking") and _tag_match(row, "fitness")
+    assert not _tag_match(row, "travel") and _tag_match(row, None)
 
 
 def test_empty_retrieval_refuses_without_llm():

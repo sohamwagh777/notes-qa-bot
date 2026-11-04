@@ -10,5 +10,13 @@
  {"question":"What day is the team demo?","expected_substring":"Monday","expected_source":"meetings/standup-notes.md"},
  {"question":"What did the electrician quote for the 20A line?","expected_substring":"2500","expected_source":"home-gym.md"},
  {"question":"What is my daily protein target?","expected_substring":"130","expected_source":"gym-log.md"},
- {"question":"What is my car insurance renewal date?","expected_substring":"NOT_IN_NOTES","expected_source":"","refusal":true}
+ {"question":"What is my car insurance renewal date?","expected_substring":"NOT_IN_NOTES","expected_source":"","refusal":true},
+ {"question":"How heavy is my barbell press lately?","expected_substring":"60","expected_source":"gym-log.md"},
+ {"question":"When am I flying to Portugal?","expected_substring":"December","expected_source":"lisbon-trip.md"},
+ {"question":"How long must I wait before buying something expensive?","expected_substring":"72","expected_source":"finance/budget-2026.md"},
+ {"question":"Which workout bench is faulty?","expected_substring":"decline","expected_source":"home-gym.md"},
+ {"question":"How many pressure cooker whistles for the lentils?","expected_substring":"4","expected_source":"dal-tadka.md"},
+ {"question":"What is on the Sunday prep table?","expected_substring":"chicken","expected_source":"meal-plan.md","tag":"cooking"},
+ {"question":"When does my passport expire?","expected_substring":"NOT_IN_NOTES","expected_source":"","refusal":true},
+ {"question":"What gym gear should I carry on the holiday?","expected_substring":"pull-up","expected_source":"lisbon-trip.md"}
 ]
